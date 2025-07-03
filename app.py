@@ -1,0 +1,167 @@
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO, emit
+from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+import hashlib
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqldb://root:root@127.0.0.1:3306/chatroom_db?charset=utf8mb4'
+db = SQLAlchemy(app)
+socketio = SocketIO(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+ADMIN_PASSWORD = 'supersecretadminpass'  # Change this to your desired admin password
+
+# User model
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    mobile = db.Column(db.String(20), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), default='pending')
+
+# Message model
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, server_default=db.func.now())
+    user = db.relationship('User')
+
+# User loader for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Registration route
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        mobile = request.form['mobile']
+        password = request.form['password']
+        
+        # Check if email already exists
+        if User.query.filter_by(email=email).first():
+            return f'Email {email} already exists. <a href="/login">Login here</a>'
+        
+        # Check if mobile already exists
+        if User.query.filter_by(mobile=mobile).first():
+            return f'Mobile number {mobile} already exists. <a href="/login">Login here</a>'
+        
+        hashed_pw = generate_password_hash(password)
+        user = User(email=email, mobile=mobile, password=hashed_pw, status='pending')
+        db.session.add(user)
+        db.session.commit()
+        return render_template('registration_success.html')
+    return render_template('login.html')
+
+# Login route
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        mobile = request.form['mobile']
+        password = request.form['password']
+        user = User.query.filter_by(email=email, mobile=mobile).first()
+        if user and check_password_hash(user.password, password):
+            if user.status != 'approved':
+                return render_template('not_approved.html')
+            login_user(user)
+            return redirect(url_for('chat'))
+        return 'Invalid credentials. <a href="/login">Try again</a>'
+    return render_template('login.html')
+
+# Logout route
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# Chat room route
+@app.route('/chat')
+@login_required
+def chat():
+    return render_template('chat.html')
+
+@app.route('/get_username')
+@login_required
+def get_username():
+    return jsonify({'username': current_user.email})
+
+def get_avatar_color(email):
+    # Pick a color from a fixed palette based on email hash
+    colors = [
+        '#6a11cb', '#2575fc', '#ff6f61', '#43cea2', '#f7971e', '#f953c6', '#30cfd0', '#667eea', '#fc5c7d', '#00c3ff'
+    ]
+    idx = int(hashlib.md5(email.encode()).hexdigest(), 16) % len(colors)
+    return colors[idx]
+
+# SocketIO event for sending/receiving messages
+@socketio.on('send_message')
+def handle_send_message(data):
+    if not current_user.is_authenticated:
+        return
+    msg = Message(user_id=current_user.id, content=data['message'])
+    db.session.add(msg)
+    db.session.commit()
+    emit('receive_message', {
+        'username': current_user.email,
+        'initial': current_user.email[0].upper(),
+        'color': get_avatar_color(current_user.email),
+        'message': data['message'],
+        'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    }, broadcast=True)
+
+def is_admin():
+    return session.get('is_admin', False)
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        password = request.form['password']
+        if password == ADMIN_PASSWORD:
+            session['is_admin'] = True
+            return redirect(url_for('admin_pending'))
+        else:
+            flash('Incorrect admin password!')
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    return redirect(url_for('admin_login'))
+
+@app.route('/admin/pending')
+def admin_pending():
+    if not is_admin():
+        return redirect(url_for('admin_login'))
+    users = User.query.filter_by(status='pending').all()
+    return render_template('admin_pending.html', users=users)
+
+@app.route('/admin/approve/<int:user_id>')
+def admin_approve(user_id):
+    if not is_admin():
+        return redirect(url_for('admin_login'))
+    user = User.query.get(user_id)
+    if user:
+        user.status = 'approved'
+        db.session.commit()
+    return redirect(url_for('admin_pending'))
+
+@app.route('/admin/reject/<int:user_id>')
+def admin_reject(user_id):
+    if not is_admin():
+        return redirect(url_for('admin_login'))
+    user = User.query.get(user_id)
+    if user:
+        user.status = 'rejected'
+        db.session.commit()
+    return redirect(url_for('admin_pending'))
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True) 
