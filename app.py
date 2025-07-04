@@ -4,12 +4,16 @@ from flask_socketio import SocketIO, emit
 from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
+from datetime import timedelta
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqldb://root:root@127.0.0.1:3306/chatroom_db?charset=utf8mb4'
 db = SQLAlchemy(app)
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins=[
+         "https://beconversive.in",
+         "https://www.beconversive.in"
+     ])
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -74,6 +78,7 @@ def login():
             if user.status != 'approved':
                 return render_template('not_approved.html')
             login_user(user)
+            session.permanent = True
             return redirect(url_for('chat'))
         return render_template('invalid_credentials.html')
     return render_template('login.html')
@@ -165,6 +170,24 @@ def admin_reject(user_id):
         user.status = 'rejected'
         db.session.commit()
     return redirect(url_for('admin_pending'))
+
+@app.route('/messages')
+@login_required
+def get_messages():
+    messages = Message.query.order_by(Message.timestamp.asc()).limit(100).all()
+    result = []
+    for msg in messages:
+        result.append({
+            'username': msg.user.email,
+            'initial': msg.user.email[0].upper(),
+            'color': get_avatar_color(msg.user.email),
+            'message': msg.content,
+            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    return jsonify(result)
+
+session.permanent = True
+app.permanent_session_lifetime = timedelta(days=7)
 
 if __name__ == '__main__':
     socketio.run(app, debug=True) 

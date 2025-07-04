@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
             myUsername = data.username;
         });
 
-    var socket = io();
+    var socket;
     var form = document.getElementById('message-form');
     var input = document.getElementById('message-input');
     var chatBox = document.getElementById('chat-box');
@@ -78,10 +78,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Store reactions in memory (for demo)
     let messageReactions = [];
-    function renderInlineReactions(idx) {
+    function renderBlockReactions(idx) {
         const reactions = messageReactions[idx] || {};
-        const bar = document.createElement('span');
-        bar.className = 'inline-reactions';
+        const bar = document.createElement('div');
+        bar.className = 'block-reactions';
         Object.entries(reactions).forEach(([emoji, count]) => {
             if (count > 0) {
                 const btn = document.createElement('span');
@@ -145,16 +145,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.removeEventListener('click', handler);
                 }
             });
-            // Inline reactions
-            let reactionsBar = renderInlineReactions(idx);
             // Compose message row
             let msgRow = document.createElement('div');
             msgRow.style.display = 'flex';
             msgRow.style.alignItems = 'center';
             msgRow.appendChild(msgDiv);
             msgRow.appendChild(emojiBtn);
-            msgRow.appendChild(reactionsBar);
             msgContainer.appendChild(msgRow);
+            // Block reactions below message
+            let reactionsBar = renderBlockReactions(idx);
+            msgContainer.appendChild(reactionsBar);
             chatBox.appendChild(msgContainer);
         });
         if (messages.length === 0) updatePlaceholder();
@@ -162,23 +162,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     let messages = [];
 
+    // Fetch chat history before connecting to Socket.IO
+    fetch('/messages')
+        .then(res => res.json())
+        .then(data => {
+            messages = data;
+            rerenderChat();
+            // Now connect to Socket.IO
+            socket = io();
+            socket.on('receive_message', function(data) {
+                let ph = chatBox.querySelector('.empty-placeholder');
+                if (ph) ph.remove();
+                messages.push(data);
+                rerenderChat();
+                // Play sound if not own message
+                if (data.username !== myUsername) {
+                    notifySound.play();
+                }
+            });
+        });
+
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         if (input.value) {
             socket.emit('send_message', { message: input.value });
             input.value = '';
             input.focus();
-        }
-    });
-
-    socket.on('receive_message', function(data) {
-        let ph = chatBox.querySelector('.empty-placeholder');
-        if (ph) ph.remove();
-        messages.push(data);
-        rerenderChat();
-        // Play sound if not own message
-        if (data.username !== myUsername) {
-            notifySound.play();
         }
     });
 
@@ -194,4 +203,17 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.classList.toggle('dark-mode');
         chatBox.classList.toggle('dark-chat-box');
     };
+
+    // Show loading spinner when scrolling to top
+    chatBox.addEventListener('scroll', function() {
+        if (chatBox.scrollTop === 0) {
+            const loadingDiv = document.getElementById('chat-loading');
+            loadingDiv.style.display = 'block';
+            // Simulate loading delay
+            setTimeout(() => {
+                loadingDiv.style.display = 'none';
+                // Here you would fetch older messages if implementing pagination
+            }, 1000);
+        }
+    });
 });

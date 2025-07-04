@@ -16,6 +16,11 @@
                         <span>Welcome, <span id="username"></span>!</span>
                         <button class="btn btn-light btn-sm" onclick="window.location.href='/logout'">Logout</button>
                     </div>
+                    <div id="chat-loading" style="display:none; text-align:center;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
                     <div id="chat-box" class="card-body chat-box mb-2 dark-chat-box"></div>
                     <form id="message-form" class="d-flex">
                         <input type="text" id="message-input" class="form-control me-2" autocomplete="off" placeholder="Type your message..." required>
