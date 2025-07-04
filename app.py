@@ -5,6 +5,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, U
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
 from datetime import timedelta
+import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -119,19 +120,31 @@ def get_avatar_color(email):
     idx = int(hashlib.md5(email.encode()).hexdigest(), 16) % len(colors)
     return colors[idx]
 
+def contains_script_or_event(msg):
+    # Block <script>, <img ... onerror=, <svg ... onload=, javascript: etc.
+    pattern = re.compile(
+        r'(<\s*script|onerror\s*=|onload\s*=|javascript:|<\s*svg|<\s*iframe|<\s*object|<\s*embed|<\s*link|<\s*meta)',
+        re.IGNORECASE
+    )
+    return bool(pattern.search(msg))
+
 # SocketIO event for sending/receiving messages
 @socketio.on('send_message')
 def handle_send_message(data):
     if not current_user.is_authenticated:
         return
-    msg = Message(user_id=current_user.id, content=data['message'])
+    message = data['message']
+    if contains_script_or_event(message):
+        # Optionally, you can emit an error to the user here
+        return  # Block the message
+    msg = Message(user_id=current_user.id, content=message)
     db.session.add(msg)
     db.session.commit()
     emit('receive_message', {
         'username': current_user.email,
         'initial': current_user.email[0].upper(),
         'color': get_avatar_color(current_user.email),
-        'message': data['message'],
+        'message': message,
         'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
     }, broadcast=True)
 
