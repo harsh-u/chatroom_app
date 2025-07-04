@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, emit
 from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
 from datetime import timedelta
+from flask_wtf import CSRFProtect
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -16,6 +17,7 @@ socketio = SocketIO(app, cors_allowed_origins=[
      ])
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+csrf = CSRFProtect(app)
 
 ADMIN_PASSWORD = 'supersecretadminpass'  # Change this to your desired admin password
 
@@ -94,7 +96,7 @@ def login():
     return render_template('login.html')
 
 # Logout route
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
@@ -197,6 +199,11 @@ def get_messages():
     return jsonify(result)
 
 app.permanent_session_lifetime = timedelta(days=7)
+
+@app.after_request
+def set_csp(response):
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self' wss: ws:;"
+    return response
 
 if __name__ == '__main__':
     socketio.run(app, debug=True) 
