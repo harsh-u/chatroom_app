@@ -9,6 +9,10 @@ body.bg-gradient-primary, body.dark-mode.bg-gradient-primary {
     100% {background-position: 0% 50%;}
 }
 
+body.bg-gradient-primary {
+    background-color: #6a11cb;
+}
+
 .card {
     border-radius: 1rem;
 }

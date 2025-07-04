@@ -14,12 +14,8 @@
                     <h2 id="form-title" class="mb-4 text-center">Login</h2>
                     <form id="auth-form" method="POST">
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Mobile</label>
-                            <input type="text" class="form-control" name="mobile" required>
+                            <label class="form-label" id="identifier-label">Email or Mobile</label>
+                            <input type="text" class="form-control" name="identifier" id="identifier-input" required placeholder="Enter your email or mobile">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Password</label>
@@ -39,6 +35,34 @@
             document.getElementById('form-title').innerText = isLogin ? 'Login' : 'Register';
             document.getElementById('submit-btn').innerText = isLogin ? 'Login' : 'Register';
             document.getElementById('auth-form').action = isLogin ? '/login' : '/register';
+            if (isLogin) {
+                document.getElementById('identifier-label').innerText = 'Email or Mobile';
+                document.getElementById('identifier-input').placeholder = 'Enter your email or mobile';
+                document.getElementById('identifier-input').name = 'identifier';
+                document.getElementById('identifier-input').value = '';
+                document.getElementById('identifier-input').type = 'text';
+                document.getElementById('identifier-input').required = true;
+            } else {
+                document.getElementById('identifier-label').innerText = 'Email';
+                document.getElementById('identifier-input').placeholder = 'Enter your email';
+                document.getElementById('identifier-input').name = 'email';
+                document.getElementById('identifier-input').value = '';
+                document.getElementById('identifier-input').type = 'email';
+                document.getElementById('identifier-input').required = true;
+                // Add mobile field for registration after email
+                if (!document.getElementById('mobile-field')) {
+                    let mobileDiv = document.createElement('div');
+                    mobileDiv.className = 'mb-3';
+                    mobileDiv.id = 'mobile-field';
+                    mobileDiv.innerHTML = '<label class="form-label">Mobile</label><input type="text" class="form-control" name="mobile" required placeholder="Enter your mobile">';
+                    // Insert after email field (which is the first field)
+                    let emailField = document.querySelector('input[name="email"]').parentNode;
+                    emailField.parentNode.insertBefore(mobileDiv, emailField.nextSibling);
+                }
+            }
+            if (isLogin && document.getElementById('mobile-field')) {
+                document.getElementById('mobile-field').remove();
+            }
             document.getElementById('toggle-link').innerHTML = isLogin ? "Don't have an account? <a href='#' onclick='toggleForm(); return false;'>Register here</a>" : "Already have an account? <a href='#' onclick='toggleForm(); return false;'>Login here</a>";
         }
         document.getElementById('auth-form').action = '/login';

@@ -46,11 +46,11 @@ def register():
         
         # Check if email already exists
         if User.query.filter_by(email=email).first():
-            return f'Email {email} already exists. <a href="/login">Login here</a>'
+            return render_template('email_exists.html', email=email)
         
         # Check if mobile already exists
         if User.query.filter_by(mobile=mobile).first():
-            return f'Mobile number {mobile} already exists. <a href="/login">Login here</a>'
+            return render_template('mobile_exists.html', mobile=mobile)
         
         hashed_pw = generate_password_hash(password)
         user = User(email=email, mobile=mobile, password=hashed_pw, status='pending')
@@ -63,16 +63,19 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        mobile = request.form['mobile']
+        identifier = request.form['identifier'].strip()
         password = request.form['password']
-        user = User.query.filter_by(email=email, mobile=mobile).first()
+        user = None
+        if '@' in identifier:
+            user = User.query.filter_by(email=identifier).first()
+        else:
+            user = User.query.filter_by(mobile=identifier).first()
         if user and check_password_hash(user.password, password):
             if user.status != 'approved':
                 return render_template('not_approved.html')
             login_user(user)
             return redirect(url_for('chat'))
-        return 'Invalid credentials. <a href="/login">Try again</a>'
+        return render_template('invalid_credentials.html')
     return render_template('login.html')
 
 # Logout route
