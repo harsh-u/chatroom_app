@@ -49,6 +49,8 @@ def home():
 # Registration route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('chat'))
     if request.method == 'POST':
         email = request.form['email']
         mobile = request.form['mobile']
@@ -72,6 +74,8 @@ def register():
 # Login route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('chat'))
     if request.method == 'POST':
         identifier = request.form['identifier'].strip()
         password = request.form['password']
