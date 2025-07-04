@@ -192,7 +192,6 @@ def get_messages():
         })
     return jsonify(result)
 
-session.permanent = True
 app.permanent_session_lifetime = timedelta(days=7)
 
 if __name__ == '__main__':
