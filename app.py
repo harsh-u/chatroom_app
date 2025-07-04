@@ -128,14 +128,16 @@ def contains_script_or_event(msg):
     )
     return bool(pattern.search(msg))
 
-# SocketIO event for sending/receiving messages
+# SocketIO event for sending/receiving messages 
 @socketio.on('send_message')
 def handle_send_message(data):
     if not current_user.is_authenticated:
         return
     message = data['message']
+    # Block < and > characters
+    if '<' in message or '>' in message:
+        return  # Block the message
     if contains_script_or_event(message):
-        # Optionally, you can emit an error to the user here
         return  # Block the message
     msg = Message(user_id=current_user.id, content=message)
     db.session.add(msg)
