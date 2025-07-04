@@ -40,6 +40,12 @@ class Message(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
+@app.route('/')
+def home():
+    return redirect(url_for('login'))
+
+
 # Registration route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
