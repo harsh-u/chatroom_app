@@ -19,10 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Notification sound could not be loaded. Please ensure static/notify.mp3 exists and is a valid mp3 file.');
     };
 
-    // Ensure dark mode is set on load
-    document.body.classList.add('dark-mode');
-    chatBox.classList.add('dark-chat-box');
-
     // Autofocus input on load
     input.focus();
 
