@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     emojiBtn.onclick = function(e) {
         e.preventDefault();
+        e.stopPropagation();
         if (emojiPicker) {
             emojiPicker.remove(); emojiPicker = null; return;
         }
@@ -47,7 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
             let btn = document.createElement('button');
             btn.type = 'button';
             btn.innerText = emoji;
-            btn.onclick = function() {
+            btn.onclick = function(ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
                 input.value += emoji;
                 input.focus();
                 emojiPicker.remove(); emojiPicker = null;

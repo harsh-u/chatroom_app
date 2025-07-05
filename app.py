@@ -13,7 +13,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqldb://root:root@127.0.0.1:330
 db = SQLAlchemy(app)
 socketio = SocketIO(app, cors_allowed_origins=[
          "https://beconversive.in",
-         "https://www.beconversive.in"
+         "https://www.beconversive.in",
+         "http://localhost:5000",
+         "http://127.0.0.1:5000"
      ])
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -128,16 +130,20 @@ def contains_script_or_event(msg):
     )
     return bool(pattern.search(msg))
 
+def contains_html_tags(msg):
+    # Check if message contains HTML tags (not just < and > characters)
+    # This allows emojis but blocks actual HTML
+    pattern = re.compile(r'<[^>]*>')
+    return bool(pattern.search(msg))
+
 # SocketIO event for sending/receiving messages 
 @socketio.on('send_message')
 def handle_send_message(data):
     if not current_user.is_authenticated:
         return
     message = data['message']
-    # Block < and > characters
-    if '<' in message or '>' in message:
-        return  # Block the message
-    if contains_script_or_event(message):
+    # Block HTML tags and script injection, but allow emojis
+    if contains_html_tags(message) or contains_script_or_event(message):
         return  # Block the message
     msg = Message(user_id=current_user.id, content=message)
     db.session.add(msg)
