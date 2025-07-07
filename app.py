@@ -4,13 +4,17 @@ from flask_socketio import SocketIO, emit
 from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
-from datetime import timedelta
+from datetime import timedelta, datetime
 import re
+import json
+from collections import deque
+from flask_wtf import CSRFProtect
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqldb://root:root@127.0.0.1:3306/chatroom_db?charset=utf8mb4'
 db = SQLAlchemy(app)
+csrf = CSRFProtect(app)
 socketio = SocketIO(app, cors_allowed_origins=[
          "https://beconversive.in",
          "https://www.beconversive.in",
@@ -21,6 +25,63 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 ADMIN_PASSWORD = 'supersecretadminpass'  # Change this to your desired admin password
+
+# Music queue system
+music_queue = deque()
+current_song = None
+is_playing = False
+
+# Bollywood Romantic Songs Library
+MUSIC_LIBRARY = {
+    'Fer Millange': {
+        'title': 'Fer Millange',
+        'url': 'https://www.youtube.com/watch?v=DLZD47lj82o',
+        'duration': 260,
+        'artist': ''
+    },
+    'Sahiba': {
+        'title': 'Sahiba',
+        'url': 'https://www.youtube.com/watch?v=n2dVFdqMYGA',
+        'duration': 300,
+        'artist': ''
+    },
+    'Par Ab Jo Aayegi Tu by AUR': {
+        'title': 'Par Ab Jo Aayegi Tu by AUR',
+        'url': 'https://www.youtube.com/watch?v=DAA0Xb8bDMc',
+        'duration': 280,
+        'artist': ''
+    },
+    'Afusic - Pal Pal': {
+        'title': 'Afusic - Pal Pal',
+        'url': 'https://www.youtube.com/watch?v=AbkEmIgJMcU',
+        'duration': 320,
+        'artist': ''
+    },
+    'tere_sang_yaara': {
+        'title': 'Tere Sang Yaara - Rustom',
+        'url': 'https://www.youtube.com/watch?v=7HDeem-JaSY',
+        'duration': 260,
+        'artist': ''
+    },
+    'kal_ho_na_ho': {
+        'title': 'Kal Ho Naa Ho - Title Track',
+        'url': 'https://www.youtube.com/watch?v=7HDeem-JaSY',
+        'duration': 310,
+        'artist': ''
+    },
+    'Maand': {
+        'title': 'Maand',
+        'url': 'https://www.youtube.com/watch?v=hAllPDaZkBo',
+        'duration': 185,
+        'artist': ''
+    },
+    'Dooron Dooron': {
+        'title': 'Dooron Dooron',
+        'url': 'https://www.youtube.com/watch?v=9T-Zbxg9X_4',
+        'duration': 366,
+        'artist': ''
+    }
+}
 
 # User model
 class User(UserMixin, db.Model):
@@ -155,6 +216,103 @@ def handle_send_message(data):
         'message': message,
         'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
     }, broadcast=True)
+
+@socketio.on('request_music')
+def handle_music_request(data):
+    if not current_user.is_authenticated:
+        return
+    
+    song_id = data.get('song_id')
+    if song_id not in MUSIC_LIBRARY:
+        emit('music_error', {'message': 'Song not found'})
+        return
+    
+    song = MUSIC_LIBRARY[song_id]
+    song_request = {
+        'id': song_id,
+        'title': song['title'],
+        'url': song['url'],
+        'duration': song['duration'],
+        'requested_by': current_user.email,
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    
+    # Add to queue
+    music_queue.append(song_request)
+    
+    # If nothing is playing, start playing
+    global current_song, is_playing
+    if not is_playing:
+        play_next_song()
+    else:
+        # Notify everyone about the new song in queue
+        emit('music_queue_updated', {
+            'queue': list(music_queue),
+            'current_song': current_song
+        }, broadcast=True)
+    
+    # Notify the requester
+    emit('music_request_success', {
+        'message': f'Added "{song["title"]}" to queue',
+        'position': len(music_queue)
+    })
+
+@socketio.on('skip_song')
+def handle_skip_song():
+    if not current_user.is_authenticated:
+        return
+    
+    global current_song, is_playing
+    if is_playing:
+        play_next_song()
+        emit('music_skipped', {
+            'message': f'Song skipped by {current_user.email}'
+        }, broadcast=True)
+
+@socketio.on('get_music_status')
+def handle_get_music_status():
+    if not current_user.is_authenticated:
+        return
+    
+    emit('music_status', {
+        'current_song': current_song,
+        'is_playing': is_playing,
+        'queue': list(music_queue)
+    })
+
+def play_next_song():
+    global current_song, is_playing
+    
+    if music_queue:
+        current_song = music_queue.popleft()
+        is_playing = True
+        
+        # Notify everyone about the new song
+        socketio.emit('music_started', {
+            'song': current_song
+        })
+        
+        # Also update the queue display
+        socketio.emit('music_queue_updated', {
+            'queue': list(music_queue),
+            'current_song': current_song
+        })
+        
+        # Schedule next song
+        socketio.sleep(current_song['duration'])
+        play_next_song()
+    else:
+        current_song = None
+        is_playing = False
+        socketio.emit('music_stopped', {
+            'message': 'No more songs in queue'
+        })
+        
+        # Clear the queue display
+        socketio.emit('music_queue_updated', {
+            'queue': [],
+            'current_song': None
+        })
 
 def is_admin():
     return session.get('is_admin', False)

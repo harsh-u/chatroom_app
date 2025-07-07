@@ -14,6 +14,7 @@
                 <div class="card shadow-lg p-4">
                     <h2 id="form-title" class="mb-4 text-center">Login</h2>
                     <form id="auth-form" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="mb-3">
                             <label class="form-label" id="identifier-label">Email or Mobile</label>
                             <input type="text" class="form-control" name="identifier" id="identifier-input" required placeholder="Enter your email or mobile">

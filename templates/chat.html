@@ -23,8 +23,45 @@
                         </div>
                     </div>
                     <div id="chat-box" class="card-body chat-box mb-2"></div>
+                    
+                    <!-- Music Player Section -->
+                    <div class="music-player-section mb-3">
+                        <div class="card">
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                <span>🎵 Music Player ##WIP##</span>
+                                <div class="music-controls">
+                                    <button id="skip-btn" class="btn btn-warning btn-sm" style="display:none;">⏭️ Skip</button>
+                                    <button id="music-toggle" class="btn btn-light btn-sm">🎵</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="current-song" class="mb-2" style="display:none;">
+                                    <strong>Now Playing:</strong> <span id="song-title"></span>
+                                    <br><small>Requested by: <span id="song-requester"></span></small>
+                                </div>
+                                <div id="queue-info" class="mb-2" style="display:none;">
+                                    <small>Songs in queue: <span id="queue-count">0</span></small>
+                                </div>
+                                <div class="music-request-section">
+                                    <select id="song-select" class="form-select form-select-sm mb-2">
+                                        <option value="">Select a song...</option>
+                                        <option value="tum_hi_ho">Tum Hi Ho - Aashiqui 2 (Arijit Singh)</option>
+                                        <option value="raabta">Raabta - Agent Vinod (Pritam, Arijit Singh)</option>
+                                        <option value="tum_se_hi">Tum Se Hi - Jab We Met (Mohit Chauhan)</option>
+                                        <option value="pehla_nasha">Pehla Nasha - Jo Jeeta Wohi Sikandar (Udit Narayan)</option>
+                                        <option value="tere_sang_yaara">Tere Sang Yaara - Rustom (Arijit Singh)</option>
+                                        <option value="kal_ho_na_ho">Kal Ho Naa Ho - Title Track (Sonu Nigam)</option>
+                                        <option value="dilwale_dulhania">Tujhe Dekha To - DDLJ (Lata, Kumar Sanu)</option>
+                                        <option value="kuch_kuch_hota_hai">Kuch Kuch Hota Hai - Title Track (Udit, Alka)</option>
+                                    </select>
+                                    <button id="request-song-btn" class="btn btn-success btn-sm">Request Song</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <form id="message-form" class="d-flex">
-                        <input type="text" id="message-input" class="form-control me-2" autocomplete="off" placeholder="Type your message..." required>
+                        <input type="text" id="message-input" class="form-control me-2" autocomplete="off" placeholder="Type your message...">
                         <button type="submit" class="btn btn-primary">Send</button>
                     </form>
                 </div>
