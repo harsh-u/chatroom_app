@@ -214,3 +214,86 @@ body.dark-mode .btn-primary {
     margin-bottom: 0.2rem;
     min-height: 1.5rem;
 }
+
+body.dark-mode .emoji-btn:hover {
+    background: rgba(106, 17, 203, 0.3);
+}
+
+/* Music Player Styles */
+.music-player-section {
+    background: rgba(255,255,255,0.1);
+    border-radius: 1rem;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.music-player-section .card {
+    background: transparent;
+    border: none;
+}
+
+.music-player-section .card-header {
+    background: linear-gradient(90deg, #28a745, #20c997) !important;
+    border-radius: 1rem 1rem 0 0;
+    border: none;
+}
+
+.music-player-section .card-body {
+    background: rgba(255,255,255,0.95);
+    border-radius: 0 0 1rem 1rem;
+    padding: 1rem;
+}
+
+body.dark-mode .music-player-section .card-body {
+    background: rgba(34,40,49,0.95);
+    color: #f1f1f1;
+}
+
+#current-song {
+    background: rgba(40, 167, 69, 0.1);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border-left: 3px solid #28a745;
+}
+
+body.dark-mode #current-song {
+    background: rgba(40, 167, 69, 0.2);
+}
+
+#queue-info {
+    background: rgba(255, 193, 7, 0.1);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border-left: 3px solid #ffc107;
+}
+
+body.dark-mode #queue-info {
+    background: rgba(255, 193, 7, 0.2);
+}
+
+.music-controls button {
+    margin-left: 0.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.music-controls button:hover {
+    transform: scale(1.05);
+}
+
+#song-select {
+    border-radius: 0.5rem;
+    border: 1px solid #28a745;
+}
+
+#request-song-btn {
+    border-radius: 0.5rem;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    border: none;
+    transition: all 0.2s;
+}
+
+#request-song-btn:hover {
+    background: linear-gradient(90deg, #20c997, #28a745);
+    transform: translateY(-1px);
+}
